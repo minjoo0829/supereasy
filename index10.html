@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Moving Text with Background</title>
+  <style>
+    /* 기본 페이지 스타일 */
+    body {
+      background-image: url("10-4.gif");
+      background-color: rgb(255, 254, 254);
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
+      background-size: 1366px 854px;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* 이미지를 배경 위에 배치하기 위한 스타일 */
+    .overlay-image {
+      position: absolute;
+      width: 100px; /* 이미지 크기 */
+      height: auto;
+      z-index: 10; /* 배경 이미지 위에 올리기 위해 */
+    }
+
+    /* 첫 번째 이미지 */
+    .image1 {
+      top: 790px; /* y 좌표 */
+      left: 1520px; /* x 좌표 */
+    }
+
+    /* 직사각형 모양 영역 */
+    .movement-area {
+      position: absolute;
+      top: 42%; /* 페이지의 30% 위치에 배치 */
+      left: 50%; /* 중앙 정렬 */
+      transform: translateX(-50%); /* 중앙 정렬 */
+      width: 1300px;  /* 가로 길이 */
+      height: 453px; /* 세로 길이 */
+      background-color: rgba(0, 0, 0, 0); /* 완전 투명한 배경 */
+      border: none; /* 테두리 제거 */
+    }
+
+    /* 텍스트 컨테이너 스타일 */
+    .text-container {
+      position: absolute;
+      font-family: 'Chalkboard', sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    /* 텍스트 애니메이션을 위한 keyframes */
+    @keyframes moveText {
+      0% {
+        transform: translate(0, 0);
+      }
+      25% {
+        transform: translate(300px, 0); /* X축 이동 */
+      }
+      50% {
+        transform: translate(690px, 200px); /* X, Y축 이동 */
+      }
+      75% {
+        transform: translate(0, 100px); /* X축, Y축 이동 */
+      }
+      100% {
+        transform: translate(0, 0);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 이미지를 클릭하면 index11.html로 이동 -->
+  <a href="index11.html">
+    <img src="black.gif" class="overlay-image image1" alt="black.gif">
+  </a>
+
+  <!-- 직사각형 영역 배치 -->
+  <div class="movement-area"></div>
+
+  <div id="text-container"></div>
+
+  <script>
+    function isTextOverlapping(newX, newY, existingTexts, width, height) {
+      for (let i = 0; i < existingTexts.length; i++) {
+        const existing = existingTexts[i];
+        const existingX = existing.x;
+        const existingY = existing.y;
+
+        if (newX < existingX + width && newX + width > existingX &&
+            newY < existingY + height && newY + height > existingY) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    window.onload = function() {
+      const userText = localStorage.getItem('userText');
+      const userTextSize = localStorage.getItem('userTextSize'); // 최신 텍스트 크기 가져오기
+
+      // 텍스트가 있을 경우 불러오기
+      if (userText) {
+        const storedTexts = userText.split('\n'); // 줄바꿈으로 구분하여 배열로 변환
+        storedTexts.forEach(function(text) {
+          createMovingText(text, userTextSize || 30); // 텍스트와 폰트 크기를 설정
+        });
+      }
+
+      // 기본 텍스트 추가
+      createMovingText('SUPER EASY', 17);
+      createMovingText('easy peasy lemon squeezy', 17);
+      createMovingText('Cold porridge eating', 17);
+      createMovingText('ngai meuan pok kluai', 17);
+    };
+
+    function createMovingText(text, fontSize) {
+      const existingTexts = [];
+
+      const container = document.createElement('div');
+      container.classList.add('text-container');
+
+      container.style.fontSize = fontSize + 'pt'; // 전달받은 텍스트 크기 사용
+
+      const width = fontSize * text.length * 0.6;
+      const height = fontSize;
+
+      let startX, startY;
+      let isOverlapping = true;
+
+      // 텍스트가 겹치지 않도록 위치를 계속 시도
+      while (isOverlapping) {
+        // .movement-area 영역 내에서 랜덤으로 텍스트 시작 위치 설정
+        const movementArea = document.querySelector('.movement-area');
+        const rect = movementArea.getBoundingClientRect();
+
+        // 텍스트의 시작 위치 범위 설정 (직사각형 내부에서만 위치하도록 제한)
+        startX = getRandomInt(rect.left, rect.left + rect.width - width);
+        startY = getRandomInt(rect.top, rect.top + rect.height - height);
+
+        isOverlapping = isTextOverlapping(startX, startY, existingTexts, width, height);
+      }
+
+      container.style.left = startX + 'px';
+      container.style.top = startY + 'px';
+      container.innerText = text;
+
+      // 배치된 텍스트 배열에 추가
+      existingTexts.push({ x: startX, y: startY });
+
+      // 텍스트를 페이지에 추가
+      document.getElementById('text-container').appendChild(container);
+
+      // 애니메이션 적용
+      animateText(container, width, height);
+    }
+
+    function animateText(element, width, height) {
+      const animationDuration = getRandomInt(5, 10); // 애니메이션 지속 시간 랜덤 설정 (5~10초)
+
+      // 상하좌우로 자유롭게 이동하는 애니메이션 설정
+      element.style.animation = `moveText ${animationDuration}s linear infinite alternate`;
+    }
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // 텍스트 저장 함수
+    function saveInput(userText) {
+      // 로컬 스토리지에서 기존 텍스트 불러오기
+      let storedText = localStorage.getItem('userText') || '';
+
+      // 새로운 입력값 추가
+      storedText += userText + '\n'; // 줄 바꿈으로 구분
+
+      // 로컬 스토리지에 다시 저장
+      localStorage.setItem('userText', storedText);
+
+      // 텍스트 저장 확인
+      console.log("입력한 텍스트가 저장되었습니다:", storedText);
+    }
+
+  </script>
+
+</body>
+</html>
